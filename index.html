@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة حضور العمال</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+
+        :root {
+            --primary: #2C3E50;
+            --secondary: #3498DB;
+            --light: #ECF0F1;
+        }
+
+        body {
+            background: var(--light);
+        }
+
+        body.en {
+            direction: ltr;
+            text-align: left;
+        }
+
+        body.en .tab-button,
+        body.en .card,
+        body.en .data-table th,
+        body.en .data-table td {
+            text-align: left;
+        }
+
+        .tab-button {
+            transition: all 0.3s ease;
+            background: white;
+            color: var(--primary);
+        }
+
+        .tab-button.active {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            background: #2980B9;
+        }
+
+        .btn-secondary {
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-secondary:hover {
+            background: #1a252f;
+        }
+
+        .btn-danger {
+            background: #E74C3C;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-danger:hover {
+            background: #C0392B;
+        }
+
+        .btn-success {
+            background: #27AE60;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .input-field {
+            border: 2px solid var(--light);
+            border-radius: 6px;
+            padding: 12px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--secondary);
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #D5F4E6;
+            color: #27AE60;
+        }
+
+        .badge-danger {
+            background: #FADBD8;
+            color: #E74C3C;
+        }
+
+        .badge-info {
+            background: #D6EAF8;
+            color: #2980B9;
+        }
+
+        .logo-upload-area {
+            border: 3px dashed var(--secondary);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logo-upload-area:hover {
+            background: #EBF5FB;
+        }
+
+        .logo-preview {
+            max-width: 200px;
+            max-height: 100px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .worker-card-print {
+            width: 350px;
+            height: 220px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            position: relative;
+        }
+
+        .worker-card-print .logo-container {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .worker-card-print .qr-container {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .worker-card-print .info-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            text-align: right;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 32px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: var(--primary);
+            color: white;
+            padding: 14px;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--light);
+        }
+
+        .data-table tr:hover {
+            background: #F8F9FA;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #7F8C8D;
+            margin-top: 8px;
+        }
+
+        .scanner-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 500px;
+        }
+
+        .scanner-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        #checkinScanner, #checkoutScanner {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .success-message {
+            background: #D5F4E6;
+            border: 2px solid #27AE60;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #27AE60;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+
+        .language-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 999;
+        }
+
+        .qr-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-area, .print-area * {
+                visibility: visible;
+            }
+            .print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button onclick="toggleLanguage()" class="language-toggle btn-success">
+        <span id="langText">English</span>
+    </button>
+
+    <div class="max-w-7xl mx-auto p-4">
+        <div class="card mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold" style="color: var(--primary)" data-ar="نظام إدارة حضور العمال" data-en="Workers Attendance System">نظام إدارة حضور العمال</h1>
+                    <p class="text-gray-600 mt-2" data-ar="نظام متكامل لإدارة حضور وانصراف العمال في مواقع المقاولات" data-en="Complete system for managing workers attendance at construction sites">نظام متكامل لإدارة حضور وانصراف العمال في مواقع المقاولات</p>
+                </div>
+                <div id="companyLogoDisplay"></div>
+            </div>
+        </div>
+
+        <div class="card mb-6">
+            <div class="flex flex-wrap gap-2">
+                <button onclick="showTab('settings')" class="tab-button active px-6 py-3 rounded-lg font-semibold" data-ar="الإعدادات" data-en="Settings">الإعدادات</button>
+                <button onclick="showTab('analytics')" class="tab-button px-6 py-3 rounded-lg font-semibold" data-ar="لوحة التحليل" data-en="Analytics">لوحة التحليل</button>
+                <button onclick="showTab('workers')" class="tab-button px-6 py-3 rounded-lg font-semibold" data-ar="إدارة العمال" data-en="Workers">إدارة العمال</button>
+                <button onclick="showTab('checkin')" class="tab-button px-6 py-3 rounded-lg font-semibold" data-ar="تسجيل الدخول" data-en="Check In">تسجيل الدخول</button>
+                <button onclick="showTab('checkout')" class="tab-button px-6 py-3 rounded-lg font-semibold" data-ar="تسجيل الخروج" data-en="Check Out">تسجيل الخروج</button>
+                <button onclick="showTab('status')" class="tab-button px-6 py-3 rounded-lg font-semibold" data-ar="حالة اليوم" data-en="Today Status">حالة اليوم</button>
+                <button onclick="showTab('reports')" class="tab-button px-6 py-3 rounded-lg font-semibold" data-ar="التقارير" data-en="Reports">التقارير</button>
+                <button onclick="showTab('edit')" class="tab-button px-6 py-3 rounded-lg font-semibold" data-ar="تعديل السجلات" data-en="Edit Records">تعديل السجلات</button>
+            </div>
+        </div>
+
+        <div id="settings-tab" class="tab-content">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="شعار الشركة" data-en="Company Logo">شعار الشركة</h2>
+                    <div class="logo-upload-area mb-4" onclick="document.getElementById('logoInput').click()">
+                        <div id="logoPreviewArea">
+                            <p class="text-gray-600 font-semibold" data-ar="اضغط لرفع شعار الشركة" data-en="Click to upload company logo">اضغط لرفع شعار الشركة</p>
+                            <p class="text-sm text-gray-500 mt-2">PNG, JPG, SVG</p>
+                        </div>
+                    </div>
+                    <input type="file" id="logoInput" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                    <button onclick="removeLogo()" class="btn-danger w-full" data-ar="حذف الشعار" data-en="Remove Logo">حذف الشعار</button>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="أنواع العمال" data-en="Worker Types">أنواع العمال</h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="newWorkerType" placeholder="أضف نوع جديد" class="input-field" data-ar-placeholder="أضف نوع جديد" data-en-placeholder="Add new type">
+                        <button onclick="addWorkerType()" class="btn-primary" data-ar="إضافة" data-en="Add">إضافة</button>
+                    </div>
+                    <div id="workerTypesList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="card mt-6">
+                <h2 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="إدارة البيانات" data-en="Data Management">إدارة البيانات</h2>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <button onclick="confirmDeleteAllWorkers()" class="btn-danger" data-ar="حذف جميع العمال" data-en="Delete All Workers">حذف جميع العمال</button>
+                    <button onclick="confirmDeleteAllAttendance()" class="btn-danger" data-ar="حذف سجلات الحضور" data-en="Delete Attendance Records">حذف سجلات الحضور</button>
+                    <button onclick="confirmDeleteEverything()" class="btn-danger" data-ar="حذف كل البيانات" data-en="Delete Everything">حذف كل البيانات</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="analytics-tab" class="tab-content hidden">
+            <div class="grid md:grid-cols-4 gap-6 mb-6">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalWorkers">0</div>
+                    <div class="stat-label" data-ar="إجمالي العمال" data-en="Total Workers">إجمالي العمال</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="presentToday" style="color: #27AE60;">0</div>
+                    <div class="stat-label" data-ar="حضروا اليوم" data-en="Present Today">حضروا اليوم</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="absentToday" style="color: #E74C3C;">0</div>
+                    <div class="stat-label" data-ar="غائبون اليوم" data-en="Absent Today">غائبون اليوم</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="currentlyInside" style="color: #3498DB;">0</div>
+                    <div class="stat-label" data-ar="داخل الموقع الآن" data-en="Currently Inside">داخل الموقع الآن</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="إحصائيات حسب النوع" data-en="Statistics by Type">إحصائيات حسب النوع</h2>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-ar="نوع العامل" data-en="Worker Type">نوع العامل</th>
+                                <th data-ar="الإجمالي" data-en="Total">الإجمالي</th>
+                                <th data-ar="حضروا اليوم" data-en="Present Today">حضروا اليوم</th>
+                                <th data-ar="غائبون" data-en="Absent">غائبون</th>
+                                <th data-ar="داخل الموقع" data-en="Inside">داخل الموقع</th>
+                                <th data-ar="نسبة الحضور" data-en="Attendance %">نسبة الحضور</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analyticsTableBody"></tbody>
+                    </table>
+                </div>
+                <button onclick="exportAnalytics()" class="btn-primary mt-4 w-full" data-ar="تصدير الإحصائيات" data-en="Export Statistics">تصدير الإحصائيات</button>
+            </div>
+        </div>
+
+        <div id="workers-tab" class="tab-content hidden">
+            <div class="card mb-6">
+                <h2 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="إضافة عامل جديد" data-en="Add New Worker">إضافة عامل جديد</h2>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <input type="text" id="workerName" placeholder="اسم العامل" class="input-field" data-ar-placeholder="اسم العامل" data-en-placeholder="Worker Name">
+                    <select id="workerType" class="input-field">
+                        <option value="" data-ar="اختر نوع العامل" data-en="Select Worker Type">اختر نوع العامل</option>
+                    </select>
+                    <input type="tel" id="workerPhone" placeholder="رقم الهاتف" class="input-field" data-ar-placeholder="رقم الهاتف" data-en-placeholder="Phone Number">
+                </div>
+                <button onclick="addWorker()" class="btn-primary mt-4 w-full" data-ar="إضافة العامل" data-en="Add Worker">إضافة العامل</button>
+            </div>
+
+            <div class="card">
+                <h2 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="قائمة العمال" data-en="Workers List">قائمة العمال</h2>
+                <div class="mb-4 flex gap-2">
+                    <input type="text" id="searchWorker" placeholder="بحث" class="input-field" oninput="renderWorkers()" data-ar-placeholder="بحث" data-en-placeholder="Search">
+                    <select id="filterWorkerType" class="input-field" onchange="renderWorkers()">
+                        <option value="" data-ar="كل الأنواع" data-en="All Types">كل الأنواع</option>
+                    </select>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-ar="الرقم" data-en="ID">الرقم</th>
+                                <th data-ar="الاسم" data-en="Name">الاسم</th>
+                                <th data-ar="النوع" data-en="Type">النوع</th>
+                                <th data-ar="الهاتف" data-en="Phone">الهاتف</th>
+                                <th data-ar="الحالة" data-en="Status">الحالة</th>
+                                <th data-ar="الإجراءات" data-en="Actions">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="workersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="checkin-tab" class="tab-content hidden">
+            <div class="card" style="background: var(--secondary); color: white;">
+                <h2 class="text-3xl font-bold mb-4 text-center" data-ar="تسجيل الدخول" data-en="Check In">تسجيل الدخول</h2>
+                <div class="scanner-controls">
+                    <button onclick="startCheckinScanner()" class="btn-secondary" data-ar="فتح الكاميرا" data-en="Start Camera">فتح الكاميرا</button>
+                    <button onclick="stopCheckinScanner()" class="btn-danger" data-ar="إيقاف الكاميرا" data-en="Stop Camera">إيقاف الكاميرا</button>
+                </div>
+                <div id="checkinScannerContainer" class="scanner-container" style="display: none;">
+                    <div id="checkinScanner"></div>
+                </div>
+                <div id="checkinMessage"></div>
+                <div id="checkinHistory" class="mt-6" style="background: white; border-radius: 8px; padding: 20px; color: #2C3E50;"></div>
+            </div>
+        </div>
+
+        <div id="checkout-tab" class="tab-content hidden">
+            <div class="card" style="background: var(--primary); color: white;">
+                <h2 class="text-3xl font-bold mb-4 text-center" data-ar="تسجيل الخروج" data-en="Check Out">تسجيل الخروج</h2>
+                <div class="scanner-controls">
+                    <button onclick="startCheckoutScanner()" class="btn-secondary" data-ar="فتح الكاميرا" data-en="Start Camera">فتح الكاميرا</button>
+                    <button onclick="stopCheckoutScanner()" class="btn-danger" data-ar="إيقاف الكاميرا" data-en="Stop Camera">إيقاف الكاميرا</button>
+                </div>
+                <div id="checkoutScannerContainer" class="scanner-container" style="display: none;">
+                    <div id="checkoutScanner"></div>
+                </div>
+                <div id="checkoutMessage"></div>
+                <div id="checkoutHistory" class="mt-6" style="background: white; border-radius: 8px; padding: 20px; color: #2C3E50;"></div>
+            </div>
+        </div>
+
+        <div id="status-tab" class="tab-content hidden">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-4" style="color: #27AE60;" data-ar="الحاضرون اليوم" data-en="Present Today">الحاضرون اليوم</h2>
+                    <div id="presentList"></div>
+                </div>
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-4" style="color: #E74C3C;" data-ar="الغائبون اليوم" data-en="Absent Today">الغائبون اليوم</h2>
+                    <div id="absentList"></div>
+                </div>
+            </div>
+            <button onclick="exportTodayStatus()" class="btn-primary mt-6 w-full" data-ar="تصدير حالة اليوم" data-en="Export Today Status">تصدير حالة اليوم</button>
+        </div>
+
+        <div id="reports-tab" class="tab-content hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="التقارير" data-en="Reports">التقارير</h2>
+                <div class="grid md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block mb-2 font-semibold" data-ar="من تاريخ" data-en="From Date">من تاريخ</label>
+                        <input type="date" id="reportStartDate" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold" data-ar="إلى تاريخ" data-en="To Date">إلى تاريخ</label>
+                        <input type="date" id="reportEndDate" class="input-field">
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-3 gap-4 mb-4">
+                    <button onclick="exportTodayAttendance()" class="btn-primary" data-ar="تصدير حضور اليوم" data-en="Export Today">تصدير حضور اليوم</button>
+                    <button onclick="exportDateRangeAttendance()" class="btn-primary" data-ar="تصدير حسب التاريخ" data-en="Export by Date">تصدير حسب التاريخ</button>
+                    <button onclick="exportAllAttendance()" class="btn-primary" data-ar="تصدير كل السجلات" data-en="Export All">تصدير كل السجلات</button>
+                </div>
+                <button onclick="confirmDeleteSelectedReports()" class="btn-danger w-full mb-4" data-ar="حذف التقارير المحددة" data-en="Delete Selected Reports">حذف التقارير المحددة</button>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllReports" onchange="selectAllReports()"></th>
+                                <th data-ar="التاريخ" data-en="Date">التاريخ</th>
+                                <th data-ar="الاسم" data-en="Name">الاسم</th>
+                                <th data-ar="النوع" data-en="Type">النوع</th>
+                                <th data-ar="الدخول" data-en="Check In">الدخول</th>
+                                <th data-ar="الخروج" data-en="Check Out">الخروج</th>
+                                <th data-ar="ساعات العمل" data-en="Hours">ساعات العمل</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="edit-tab" class="tab-content hidden">
+            <div class="card">
+                <h2 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="تعديل سجلات الحضور" data-en="Edit Attendance Records">تعديل سجلات الحضور</h2>
+                <div class="grid md:grid-cols-2 gap-4 mb-6">
+                    <input type="date" id="editDate" class="input-field">
+                    <select id="editWorkerFilter" class="input-field" onchange="renderEditTable()">
+                        <option value="" data-ar="كل العمال" data-en="All Workers">كل العمال</option>
+                    </select>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-ar="التاريخ" data-en="Date">التاريخ</th>
+                                <th data-ar="الاسم" data-en="Name">الاسم</th>
+                                <th data-ar="النوع" data-en="Type">النوع</th>
+                                <th data-ar="الدخول" data-en="Check In">الدخول</th>
+                                <th data-ar="الخروج" data-en="Check Out">الخروج</th>
+                                <th data-ar="الإجراءات" data-en="Actions">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="editTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="تأكيد العملية" data-en="Confirm Operation">تأكيد العملية</h3>
+            <p id="confirmMessage" class="mb-6 text-lg"></p>
+            <div class="flex gap-4">
+                <button onclick="closeConfirmModal()" class="btn-primary flex-1" data-ar="إلغاء" data-en="Cancel">إلغاء</button>
+                <button id="confirmButton" class="btn-danger flex-1" data-ar="تأكيد" data-en="Confirm">تأكيد</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editRecordModal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="تعديل السجل" data-en="Edit Record">تعديل السجل</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block mb-2 font-semibold" data-ar="وقت الدخول" data-en="Check In Time">وقت الدخول</label>
+                    <input type="time" id="editCheckinTime" class="input-field">
+                </div>
+                <div>
+                    <label class="block mb-2 font-semibold" data-ar="وقت الخروج" data-en="Check Out Time">وقت الخروج</label>
+                    <input type="time" id="editCheckoutTime" class="input-field">
+                </div>
+            </div>
+            <div class="flex gap-4 mt-6">
+                <button onclick="closeEditRecordModal()" class="btn-primary flex-1" data-ar="إلغاء" data-en="Cancel">إلغاء</button>
+                <button onclick="saveEditedRecord()" class="btn-primary flex-1" data-ar="حفظ" data-en="Save">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="qrModal" class="modal">
+        <div class="modal-content text-center">
+            <h3 class="text-2xl font-bold mb-4" style="color: var(--primary)" data-ar="رمز QR للعامل" data-en="Worker QR Code">رمز QR للعامل</h3>
+            <div id="qrCodeDisplay" class="mb-4"></div>
+            <div class="qr-actions justify-center">
+                <button onclick="downloadQRCode()" class="btn-primary" data-ar="تنزيل QR" data-en="Download QR">تنزيل QR</button>
+                <button onclick="printQRCode()" class="btn-secondary" data-ar="طباعة QR" data-en="Print QR">طباعة QR</button>
+                <button onclick="closeQRModal()" class="btn-danger" data-ar="إغلاق" data-en="Close">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="attendance-system-final.js"></script>
+</body>
+</html>
